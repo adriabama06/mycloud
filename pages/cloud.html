@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCloud</title>
+</head>
+<body>
+    <script>
+        async function main() {
+            var xmlHTTP = new XMLHttpRequest();
+            var url = new URL(window.location.href);
+            if(url.searchParams.get('f')) {
+                xmlHTTP.open('GET', `${window.location.origin}/api/v0/files?nolog=true&f=${url.searchParams.get('f')}`);
+            } else {
+                xmlHTTP.open('GET', `${window.location.origin}/api/v0/files?nolog=true`);
+            };
+
+//        xmlHTTP.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+//        xmlHTTP.send(JSON.stringify(jsontosd));
+            xmlHTTP.send();
+
+        async function loaded(e) {
+            if(xmlHTTP.response == 'false') {
+                alert('Error | Try re load');
+            } else {
+                const data = JSON.parse(xmlHTTP.response);
+                console.log(data)
+                for(const i of data.dir) {
+                    var dir = document.getElementById('dir');
+                    var btn = document.createElement("BUTTON");
+                    var btndel = document.createElement("BUTTON");
+                    btndel.innerHTML = `Eliminar`;
+                    btndel.style.cursor = 'pointer';
+                    btndel.onclick = () => {
+                        deldir(i);
+                    };
+                    btn.innerHTML = `${i}`;
+                    btn.onclick = () => {
+                        url = new URL(window.location.href);
+                        if(url.searchParams.get('f')) {
+                            window.location.href = `${window.location.origin}/mycloud?nolog=true&f=${url.searchParams.get('f')}/${i}`;
+                        } else {
+                            window.location.href = `${window.location.origin}/mycloud?nolog=true&f=${i}`;
+                        };
+                        
+                    };
+                    dir.appendChild(btn);
+                    dir.appendChild(btndel);
+                };
+                for(const i of data.files) {
+                    var dir = document.getElementById('files');
+                    var div = document.createElement("DIV");
+                    var btn = document.createElement("BUTTON");
+                    var btndel = document.createElement("BUTTON");
+                    var text = document.createElement("P");
+                    text.innerHTML = `${i}`;
+                    btn.innerHTML = `Descargar`;
+                    btndel.innerHTML = `Eliminar`;
+
+                    text.onclick = () => {
+                        url = new URL(window.location.href);
+                        if(url.searchParams.get('f')) {
+                            window.location.href = `${window.location.origin}/v/${i}?nolog=true&path=${url.searchParams.get('f')}`;
+                        } else {
+                            window.location.href = `${window.location.origin}/v/${i}?nolog=true`;
+                        };
+                    };
+
+                    text.style.cursor = 'pointer';
+                    btn.style.cursor = 'pointer';
+                    btndel.style.cursor = 'pointer';
+
+                    btn.onclick = () => {
+                        url = new URL(window.location.href);
+                        if(url.searchParams.get('f')) {
+                            window.location.href = `${window.location.origin}/d/${i}?nolog=true&path=${url.searchParams.get('f')}`;
+                        } else {
+                            window.location.href = `${window.location.origin}/d/${i}?nolog=true`;
+                        };
+                    };
+
+                    btndel.onclick = () => {
+                        del(i);
+                    };
+                    
+                    dir.appendChild(div);
+                    div.appendChild(text);
+                    div.appendChild(btn);
+                    div.appendChild(btndel);
+                };
+            };
+        };
+
+        xmlHTTP.addEventListener("loadend", loaded, false);
+        };
+
+        main();
+        
+        setInterval(async () => {
+            document.getElementById("dir").innerHTML = "";
+            document.getElementById("files").innerHTML = "";
+            main();
+        }, 60000);
+
+
+        async function upload() {
+            var files = document.getElementById('filesselect');
+            for(const file of files.files) {
+                var fd = new FormData();
+                fd.append("file", file);
+                var xmlHTTP = new XMLHttpRequest();
+                const messageElement = document.createElement('p');
+                messageElement.id = `_up${file.name}`;
+                messageElement.innerHTML = `${file.name} - Subiendo <progress id="_bar${file.name}" value="0" max="100"></progress>`;
+                document.getElementById('filesuploading').append(messageElement);
+                async function uploadprogres(oEvent) {
+                    if (oEvent.lengthComputable) {
+                        var percentComplete = oEvent.loaded / oEvent.total * 100;
+                        document.getElementById(`_bar${file.name}`).value = percentComplete;
+                    } else {
+
+                    };
+                };
+                xmlHTTP.upload.addEventListener("progress", uploadprogres, false);
+                async function end() {
+                    document.getElementById("filesuploading").removeChild(document.getElementById(`_up${file.name}`));
+                    document.getElementById("dir").innerHTML = "";
+                    document.getElementById("files").innerHTML = "";
+                    main();
+                };
+                xmlHTTP.addEventListener("loadend", end, false)
+                url = new URL(window.location.href);
+                if(url.searchParams.get('f')) {
+                    xmlHTTP.open("POST", `${window.location.origin}/api/v0/upload?path=${url.searchParams.get('f')}`, true);
+                } else {
+                    xmlHTTP.open("POST", `${window.location.origin}/api/v0/upload`, true);
+                };
+                xmlHTTP.send(fd);
+            };
+        };
+
+        async function del(f) {
+            var jsontosd = {
+                "file": f,
+            };
+            var xmlHTTP = new XMLHttpRequest();
+            //xmlHTTP.open('DELETE', `${window.location.origin}/api/v0/files`);
+            url = new URL(window.location.href);
+            if(url.searchParams.get('f')) {
+                xmlHTTP.open("DELETE", `${window.location.origin}/api/v0/files?f=${url.searchParams.get('f')}`);
+            } else {
+                xmlHTTP.open("DELETE", `${window.location.origin}/api/v0/files`);
+            };
+            xmlHTTP.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xmlHTTP.send(JSON.stringify(jsontosd));
+
+            async function loaded(e) {
+                if(xmlHTTP.response == 'true') {
+                    document.getElementById("dir").innerHTML = "";
+                    document.getElementById("files").innerHTML = "";
+                    main();
+                } else {
+                    alert('Error deleting...');
+                };
+            };
+
+            xmlHTTP.addEventListener("loadend", loaded, false);
+        };
+
+        async function newdir() {
+            var name = document.getElementById('newdir').value;
+            var jsontosd = {
+                "dir": name,
+            };
+            var xmlHTTP = new XMLHttpRequest();
+            //xmlHTTP.open('DELETE', `${window.location.origin}/api/v0/files`);
+            url = new URL(window.location.href);
+            if(url.searchParams.get('f')) {
+                xmlHTTP.open("POST", `${window.location.origin}/api/v0/dir?f=${url.searchParams.get('f')}`);
+            } else {
+                xmlHTTP.open("POST", `${window.location.origin}/api/v0/dir`);
+            };
+            xmlHTTP.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xmlHTTP.send(JSON.stringify(jsontosd));
+
+            async function loaded(e) {
+                if(xmlHTTP.response == 'true') {
+                    document.getElementById("dir").innerHTML = "";
+                    document.getElementById("files").innerHTML = "";
+                    main();
+                } else {
+                    alert('Error deleting...');
+                };
+            };
+
+            xmlHTTP.addEventListener("loadend", loaded, false);
+        };
+
+        async function deldir(dir) {
+            var jsontosd = {
+                "dir": dir,
+            };
+            var xmlHTTP = new XMLHttpRequest();
+            //xmlHTTP.open('DELETE', `${window.location.origin}/api/v0/files`);
+            url = new URL(window.location.href);
+            if(url.searchParams.get('f')) {
+                xmlHTTP.open("DELETE", `${window.location.origin}/api/v0/dir?f=${url.searchParams.get('f')}`);
+            } else {
+                xmlHTTP.open("DELETE", `${window.location.origin}/api/v0/dir`);
+            };
+            xmlHTTP.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xmlHTTP.send(JSON.stringify(jsontosd));
+
+            async function loaded(e) {
+                if(xmlHTTP.response == 'true') {
+                    document.getElementById("dir").innerHTML = "";
+                    document.getElementById("files").innerHTML = "";
+                    main();
+                } else {
+                    alert('Error deleting...');
+                };
+            };
+
+            xmlHTTP.addEventListener("loadend", loaded, false);
+        };
+
+        async function back() {
+            url = new URL(window.location.href);
+            if(!url.searchParams.get('f')) {
+                return;
+            } else {
+                var ii = url.searchParams.get('f').split('/');
+                var iimenos = ii.pop();
+                var i = ii.join('/');
+                window.location.href = `${window.location.origin}/mycloud?nolog=true&f=${i}`;
+            };
+        };
+
+    </script>
+    <div id="exp">
+        <div id="config">
+            <button onclick="back();">Ir a la carpeta anerior</button>
+            <input id="newdir" type="text"/><button onclick="newdir();">Crear Carpeta</button>
+        </div>
+        <div id="dir"></div>
+        <div id="files"></div>
+        <div style="position: fixed;bottom: 2%;right: 1%;width: 25%;border: 3px solid #555555;background-color: transparent;outline: none;cursor: pointer;" id="upload">
+            <input id="filesselect" type="file" onchange="upload();" multiple hidden/>
+            <label style="outline: none;cursor: pointer;" for="filesselect">Elije un archivo</label>
+            <div id="filesuploading"></div>
+        </div>
+        <button style="position: fixed;bottom: 95%;right: 1%;width: 5%;border: 3px solid #00ffbf;background-color: transparent;outline: none;cursor: pointer;" onclick="window.location.href = '/'">Inicio</button>
+    </div>
+</body>
+</html>

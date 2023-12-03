@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCloud | Login</title>
+</head>
+<body>
+    <script>
+        async function login(user='', pass='') {
+            if(user === '' || pass === '') {
+                return;
+            };
+            var jsontosd = {
+                "user": user,
+                "pass": pass,
+            };
+            var xmlHTTP = new XMLHttpRequest();
+            xmlHTTP.open('POST', `${window.location.origin}/login`);
+            xmlHTTP.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xmlHTTP.send(JSON.stringify(jsontosd));
+
+            async function loaded(e) {
+                if(xmlHTTP.response == 'true') {
+                    window.location.href = '/';
+                } else {
+                    window.location.reload();
+                };
+            };
+
+            xmlHTTP.addEventListener("loadend", loaded, false);
+        };
+    </script>
+    <input id="user" type="text" autocomplete="username" placeholder="Nombre de usuario...">
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Contraseña...">
+    <button onclick="login(document.getElementById('user').value, document.getElementById('pass').value)">Iniciar sesion</button>
+</body>
+</html>
